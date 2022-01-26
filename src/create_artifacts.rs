@@ -293,7 +293,7 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
                 file.write_all(&ser_file_content)?;
                 Ok(())
             }
-
+// 1
             // let mut contents = match read_file(&cluster_status_file) {
             //     Ok(contents) => contents,
             //     Err(e) => panic!("{}", e),

@@ -8,7 +8,7 @@ pub fn find_island(cluster_name: String) -> String {
         None => panic!("Unable to find cluster island"),
     }
 }
-
+// 3
 fn run(cluster_name: String) -> Option<Archipelago> {
     let last_char = cluster_name.to_uppercase().chars().last().unwrap();
 

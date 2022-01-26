@@ -11,7 +11,7 @@ pub fn update_sign_config(
 ) -> Result<String, Box<dyn Error>> {
     // Get content from INI file
     let contents: String = std::fs::read_to_string(sign_config_ini).unwrap();
-
+// 6
     // Get previous cluster name
     let get_groups = Regex::new(r"(^\D+)(\d+)(\D)").unwrap();
     let mut old_cluster: String = "".to_string();

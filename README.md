@@ -21,7 +21,7 @@ The apcert_util takes the following parameters:
 - **Stage-2** - Sign and submit all artifacts to Source Depot
 - **Stage-3** - Generate new certificate key-pair with PkiCmd 
 
-**NOTE:** The required PkiCmd can be found inside the JSON file for each cluster located in the **Working_Dir** folder specified. i.e: **working_dir\cluster_name.json**.
+**NOTE:** The required PkiCmd can be found inside the TXT file for each cluster located in the **Working_Dir** folder specified. i.e: **working_dir\ApCertUtil\cluster_name.txt**.
 
 - **Stage-4** - Sign and submit encrypted private key (APCA-CLUSTER_NAME_0.key.encr) from stage 3 to Source Depot
 - **Stage-5** - Submit public key (Cluster_Name.cer) to PRSS for signing
