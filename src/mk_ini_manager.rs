@@ -159,7 +159,6 @@ pub fn add_cluster_to_key_ring(
                             .collect();
                         // println!("clusters: {:?}", clusters);
                         found_home = clusters.contains(&cluster_name.to_string());
-                        // println!("Found home? {} - Adding to current line.", found_home);
                         // If we have room in current keyring, just add the cluster
                         if clusters.len() < max_clusters_per_line
                             && found_home == false

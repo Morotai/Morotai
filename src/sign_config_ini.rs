@@ -13,7 +13,6 @@ pub fn update_sign_config(
     let contents: String = std::fs::read_to_string(sign_config_ini).unwrap();
 
     // Get previous cluster name
-    // TODO: Turn this into function
     let get_groups = Regex::new(r"(^\D+)(\d+)(\D)").unwrap();
     let mut old_cluster: String = "".to_string();
     let mut cluster_prefix: &str = "";

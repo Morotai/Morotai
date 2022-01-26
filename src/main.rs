@@ -20,8 +20,6 @@ fn main() {
         }
         // one argument passed
         1 => {
-            // ADD Cluster argument to a Vec<String> then iterate to catch one or more clusters
-
             cluster_name = &args[0];
             // print!("Provided cluster name: {} and size: {}", &args[0], args.len());
 

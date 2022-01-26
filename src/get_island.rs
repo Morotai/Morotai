@@ -48,7 +48,7 @@ fn xbox_pf(cluster_name: &str) -> bool {
     }
 }
 
-// ApClassic Island
+// ApClassic Island - 2022
 // All ApClassic clusters as of 6/23/2020. No new clusters will be created in ApClassic.
 fn ap_classic(cluster_name: &str) -> bool {
     let ap_classic_clusters = vec![
