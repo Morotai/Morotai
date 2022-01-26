@@ -298,11 +298,11 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
             //     Ok(contents) => contents,
             //     Err(e) => panic!("{}", e),
             // };
-            // // println!("ORGINAL CONTENT: {:#?}", contents);
+            // println!("ORGINAL CONTENT: {:#?}", contents);
 
-            // // Update json file to remove double backslashes from the autopilot group name
+            // Update json file to remove double backslashes from the autopilot group name
             // let final_content = contents.replace("autopilot\\MANOLO", r#"autopilot\ApPki"#);
-            // // println!("FINAL CONTENT: {:#?}", final_content);
+            // println!("FINAL CONTENT: {:#?}", final_content);
 
             // match write_file(&cluster_status_file, final_content) {
             //     Err(e) => panic!("{}", e),
