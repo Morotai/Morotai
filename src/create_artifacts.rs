@@ -31,31 +31,27 @@ struct Cluster {
     ap_internal_value: String,
     new_cluster_file: String,
     pki_cmd: String,
+    ap_sign_cmd: String
 }
 
-pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Error> {
+pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>, mut cluster_count: usize) -> Result<String, Error> {
     let mut clusters = Vec::new();
-    let mut cluster_count = 0;
+    // let mut cluster_count = 0;
     use time::OffsetDateTime;
+    let mut cluster_status_file = "".to_string();
 
-    if cluster_name.contains(",") {
-        clusters = cluster_name.trim().split(",").collect();
-        cluster_count = clusters.len();
-    } else {
-        clusters.push(cluster_name.trim());
-        cluster_count = clusters.len();
-        // println!("Single Cluster Vector Length: {:?}", clusters.len());
-    }
+    clusters.push(cluster_name.trim());
 
-    println!("Multi Cluster Vector Length: {:?}", clusters.len());
+    // println!("Total Clusters: {:?}", clusters.len());
 
     // Get PFGold Root folder and branch to ensure the program is running under pfgold enlistment
     let branch = "_BUILDBRANCH";
-    let enlistment_path = "inetroot";
+    let enlistment_path = "SDROOT";
 
 
     // set date folder name as Month-day-year (i.e: October-10-2020)
     let date_folder: String = format!("{}-{}-{}", OffsetDateTime::now_utc().month(), OffsetDateTime::now_utc().day(), OffsetDateTime::now_utc().year());
+    // println!("\nCURRENT DATE FOLDER: {date_folder}\n");
 
     let mut local_cert_path: PathBuf = match maybe_cert_path {
         Some(path) => path.to_owned(),
@@ -68,11 +64,11 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
     // Check if local cert Full path exists and create it if not
     match fs::create_dir(&local_cert_path.clone()) {
         Ok(_) => {
-            println!("Created working directory folder: {:?}", local_cert_path);
+            println!("Created Top Level working directory: {:?}", local_cert_path);
         }
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
-                println!("Working directory: {:?}", local_cert_path);
+                println!("Skipping... Top Level Working directory Already Exists: {:?}", local_cert_path);
             } else {
                 return Err(Error::Io(err));
             }
@@ -83,13 +79,15 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
     let mut ap_cert_util_dir = local_cert_path.clone();
 
     ap_cert_util_dir.push("ApCertUtil");
+    // println!("\nApCertUtil 2ND TOP LEVEL FOLDER: {:?}\n", ap_cert_util_dir);
+
     match fs::create_dir(&ap_cert_util_dir.clone()) {
         Ok(_) => {
             println!("Created ApCertUtil folder: {:?}", ap_cert_util_dir);
         }
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
-                println!("ApCertUtil Folder Already Exists: {:?}", ap_cert_util_dir);
+                println!("Skipping... ApCertUtil Folder Already Exists: {:?}", ap_cert_util_dir);
             } else {
                 return Err(Error::Io(err));
             }
@@ -98,16 +96,17 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
 
     // Update local_cert_path with custom folder name: i.e: %working_dir%\ApCertUtil\October-28-2020
     ap_cert_util_dir.push(&date_folder.trim());
+
     let mut working_folder = ap_cert_util_dir.clone();
 
     // Check if local cert Full path exists and create it if not
     match fs::create_dir(&working_folder.clone()) {
         Ok(_) => {
-            println!("Created working directory folder: {:?}", working_folder);
+            println!("Created Full Path Working Directory: {:?}", working_folder);
         }
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
-                println!("Working directory: {:?}", working_folder);
+                println!("Skipping... Full Path Working directory Already Exists: {:?}", working_folder);
             } else {
                 return Err(Error::Io(err));
             }
@@ -162,7 +161,7 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
         let ap_svc_path = format!("{}\\autopilotservice\\{}", pfgoldpath, cluster);
         println!("CREATE ARTIFACTS: VE ROOT VALUE: {}", ve_root_text);
         // Save cluster settings to cluster_name.json file
-        let cluster_status_file = format!("{}\\{}.txt", working_folder.display(), cluster);
+        cluster_status_file = format!("{}\\{}.txt", working_folder.display(), cluster);
 
         // Create cluster folder in autopilotservice path
         // Create Cluster directories. Skip if already exist
@@ -218,7 +217,7 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
 
             // Create SigningConfig.ini file
             new_file(
-                String::from("[Metadata]\r\nServiceTreeIds=1bd5fd01-0565-4c8e-affe-ec1b21c96529"),
+                String::from("[Metadata]\r\nServiceTreeIds=1bd5fd01-0565-4c8e-affe-ec1b21c96529\r\n"),
                 &sign_config_file,
             );
 
@@ -237,7 +236,7 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
                 "-p apca.autopilot.{}.ap.gbl -d {} -g ",
                 donor, cluster_island
             );
-            let pki_cmd_3 = r#"autopilot\ApPki -r "#;
+            let pki_cmd_3 = format!(r#"autopilot\ApPki-{} -r "#, cluster);
             let pki_cmd_4 = format!(
                 "{}\\{}.csr -l {}\\{}.xml -k {}\\APCA-{}_0.key.encr --ame",
                 working_folder.to_string_lossy(),
@@ -270,15 +269,16 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
                 ap_internal_value: key_set.to_string(),
                 new_cluster_file: cluster_status_file.to_string(),
                 pki_cmd: pki_cmd,
+                ap_sign_cmd: "AP_SIGN_CMD".to_string(),
             };
             let cluster_file = cluster_status_file.clone();
 
             impl fmt::Display for Cluster {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     write!(f, 
-                        "Date: {}\nStage: {}\nCluster_Name: {}\nCluster_Island: {}\nBranch_Name: {}\nWorking_Dir: {}\nPFGold_Path: {}\nVirtual_Env_Path: {}\nCluster_Path: {}\nMaskter_Key_File: {}\nSConfig_File: {}\nSecret_Store: {}\nPFGold_Sign_Config: {}\nDonor: {}\nVE_Root_Value: {}\nAP_Internal_Value: {}\nNew_Cluster_File: {}\nPKI_CMD: {}", 
+                        "Date: {}\nStage: {}\nCluster_Name: {}\nCluster_Island: {}\nBranch_Name: {}\nWorking_Dir: {}\nPFGold_Path: {}\nVirtual_Env_Path: {}\nCluster_Path: {}\nMaskter_Key_File: {}\nSConfig_File: {}\nSecret_Store: {}\nPFGold_Sign_Config: {}\nDonor: {}\nVE_Root_Value: {}\nAP_Internal_Value: {}\nNew_Cluster_File: {}\nPKI_CMD: {}\nap_sign_cmd: {}", 
                     self.date, self.stage, self.cluster_name, self.cluster_island, self.branch_name, self.working_dir.to_string_lossy(), self.pfgold_path, self.virtual_env_path,
-                self.cluster_path, self.master_key_file, self.sconfig_file, self.secstore_file, self.pfgold_sign_config, self.donor, self.ve_root_value, self.ap_internal_value, self.new_cluster_file, self.pki_cmd)
+                self.cluster_path, self.master_key_file, self.sconfig_file, self.secstore_file, self.pfgold_sign_config, self.donor, self.ve_root_value, self.ap_internal_value, self.new_cluster_file, self.pki_cmd, self.ap_sign_cmd)
                 }
             };
             // let serialized_cluster = serde_json::to_string(&new_cluster).unwrap();
@@ -294,20 +294,6 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
                 Ok(())
             }
 // 1
-            // let mut contents = match read_file(&cluster_status_file) {
-            //     Ok(contents) => contents,
-            //     Err(e) => panic!("{}", e),
-            // };
-            // println!("ORGINAL CONTENT: {:#?}", contents);
-
-            // Update json file to remove double backslashes from the autopilot group name
-            // let final_content = contents.replace("autopilot\\MANOLO", r#"autopilot\ApPki"#);
-            // println!("FINAL CONTENT: {:#?}", final_content);
-
-            // match write_file(&cluster_status_file, final_content) {
-            //     Err(e) => panic!("{}", e),
-            //     _ => (),
-            // };
             // change directory to PFGoldRoot
             let root = Path::new(&pfgoldpath);
             // Add artifacts to SD - This requires more MasterKeys.ini parsing
@@ -327,14 +313,9 @@ pub fn run(cluster_name: &str, maybe_cert_path: Option<&Path>) -> Result<(), Err
             let _result2 = add_cmd2.wait().unwrap();
             println!("Sd add secret_config result: {}", _result2);
 
-            // Open new cluster.json file using Notepad
-            Command::new("notepad")
-                .arg(cluster_file)
-                .spawn()
-                .expect("failed to open cluster file.");
         }
     }
-    Ok(())
+    Ok((cluster_status_file))
 }
 
 fn new_cluster_foler(new_cluster: String) {

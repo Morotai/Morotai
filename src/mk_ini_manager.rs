@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
     usize,
 };
-// 5
+
 pub fn add_cluster_to_key_ring(
     cluster_name: &str, // "xyz123"
     ini_section: &str,  // "server_list_"
@@ -105,7 +105,9 @@ pub fn add_cluster_to_key_ring(
         .map(|s| Some(s))
         .chain(std::iter::once(None));
 
+    let mut line_count = 0;
     for opt_line in lines_in_iter {
+
         let (is_eod, line) = if let Some(line) = opt_line {
             //println!("[{:?}] '{:?}'", state, line);
             (false, line.to_owned())
@@ -113,7 +115,7 @@ pub fn add_cluster_to_key_ring(
             //println!("[{:?}] EOD", state);
             (true, String::new())
         };
-
+        
         // See if line is blank or prefix matches. EOD lines don't count as blank.
         let is_blank = !is_eod && line.trim().is_empty();
 
@@ -126,6 +128,7 @@ pub fn add_cluster_to_key_ring(
 
         // If the line matches, read its index number
         if let Some(ref caps) = opt_prefix_captures {
+            line_count +=1;
             let group_number = usize::from_str(&caps[2]).unwrap();
             if highest_seen_matching_group_number < group_number {
                 highest_seen_matching_group_number = group_number;
@@ -178,7 +181,7 @@ pub fn add_cluster_to_key_ring(
                             last_matching_group_out_line_index = lines_out.len();
                             lines_out.push(line.clone());
                         }
-                    } else if is_blank {
+                    } else if is_blank { // add && line number
                         lines_out.push(line.clone());
                     } else {
                         // We've hit a non-blank line (or EOD) that doesn't match

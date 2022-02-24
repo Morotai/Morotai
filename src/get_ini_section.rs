@@ -4,7 +4,7 @@ pub fn find_ini_section(cluster_island: &str) -> &'static str {
         None => panic!("Unable to determine INI Section."),
     }
 }
-// 2
+
 fn run(cluster_island: &str) -> Option<&'static str> {
     match cluster_island {
         "PublicPilotfish" => Some("PilotfishAll"),

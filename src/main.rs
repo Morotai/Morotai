@@ -1,5 +1,7 @@
 use std::env;
 mod create_artifacts;
+use std::fs::File;
+use std::io::{Write, Read};
 use std::path::PathBuf;
 mod get_ini_section;
 mod get_island;
@@ -7,12 +9,17 @@ mod mk_ini_manager;
 mod sign_config_ini;
 use std::process::Command;
 extern crate r#time;
-// 4
+
 fn main() {
     let mut args_count = 0;
     let mut cluster_name = "";
     let mut working_dir = "";
     let args: Vec<String> = env::args().skip(1).collect();
+    let mut cluster_status_file = "".to_string();
+    let mut clusters = Vec::new();
+    let mut status_files_tracker = Vec::new();
+    let mut cluster_count = 0;
+
     match args.len() {
         // no arguments passed
         0 => {
@@ -43,11 +50,32 @@ fn main() {
         }
     }
 
+
     if args_count == 1 {
-        create_artifacts::run(cluster_name, None).unwrap();
+        cluster_status_file = create_artifacts::run(cluster_name, None, 1).unwrap();
+        status_files_tracker.push(cluster_status_file);
+
     } else {
-        // create required folders and files
-        create_artifacts::run(cluster_name, Some(&PathBuf::from(working_dir.to_string()))).unwrap();
+
+        if cluster_name.contains(",") {
+            clusters = cluster_name.trim().split(",").collect();
+            cluster_count = clusters.len();
+        } else {
+            clusters.push(cluster_name.trim());
+            cluster_count = clusters.len();
+            // println!("Single Cluster Vector Length: {:?}", clusters.len());
+        }
+
+        for cluster_name in clusters {
+            println!("Total Clusters: {:?}", &cluster_count);
+            // create required folders and files
+         let status_file =  create_artifacts::run(cluster_name, Some(&PathBuf::from(working_dir.to_string())), cluster_count).unwrap();
+        //   println!("STATUS FILE FROM MAIN.RS: {cluster_status_file}");
+          status_files_tracker.push(status_file);
+         // Reduce cluster total by 1
+         cluster_count -= 1;
+        }
+
     }
     // run sd change after all files have been created, updated and added
     let sd_cmd = Command::new("sd")
@@ -59,11 +87,51 @@ fn main() {
     // let mut sd_cmd_result = Vec::new();
     let sd_cmd_result: Vec<&str> = my_result.split_whitespace().collect();
     let change_list_no = sd_cmd_result[1];
-    println!("Changelist Number: {:?}", sd_cmd_result[1]);
+    let ap_sign_tool_cmd = format!("apsigntool -a --2p -d ame -c {}", change_list_no);
+
+    for cluster_file in status_files_tracker {
+
+                    // Add apsigntool cmd to status file
+                    let contents = match read_file(&cluster_file) {
+                        Ok(contents) => contents,
+                        Err(e) => panic!("{}", e),
+                    };
+                    // println!("ORGINAL CONTENT: {:#?}", contents);
+        
+                    let final_content = contents.replace("AP_SIGN_CMD", &ap_sign_tool_cmd);
+                    // println!("FINAL CONTENT: {:#?}", final_content);
+        
+                    match write_file(&cluster_file, final_content) {
+                        Err(e) => panic!("{}", e),
+                        _ => (),
+                    };
+
+            // Open new cluster.txt file using Notepad
+            Command::new("notepad")
+            .arg(cluster_file)
+            .spawn()
+            .expect("failed to open cluster file.");
+    }
+
+
+    // println!("Changelist Number: {:?}", sd_cmd_result[1]);
     println!(
-        "Run this sign command: apsigntool.exe -a --2p -d ame -c {}",
+        "Run this sign command: apsigntool -a --2p -d ame -c {}",
         change_list_no
     );
+}
+
+fn read_file(file: &str) -> std::io::Result<String> {
+    let mut file = File::open(file)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+fn write_file(file: &str, contents: String) -> std::io::Result<()> {
+    let mut file = File::create(file)?;
+    file.write(contents.as_bytes())?;
+    Ok(())
 }
 
 fn help() {
